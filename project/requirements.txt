@@ -1,0 +1,144 @@
+class Node:
+    def __init__(self, sub="", children=None):
+        self.sub = sub
+        self.ch = children or []  # list of arrays in the form [start, end] e.g. [[1,3],[2,3]]
+        self.label = None  # 1 = s1, 2 = s2, 3 = both
+        self.visited1 = False
+        self.visited2 = False
+
+
+def construct_suffix_tree(s1, s2):
+    s = s1 + "#" + s2 + "$"
+    output = [Node()]
+    for j in range(len(s)):
+        suffix = s[j:]
+        node_index = 0  # current node index
+        i = 0  # index of the char of suffix we are looking at
+        while i < len(suffix):
+            char = suffix[i]
+            child_index = 0
+            break_flag = False
+            while True:
+                children = output[node_index].ch  # children of current node
+                # if no matching child, remainder of suffix becomes new node
+                if child_index == len(children):
+                    next_node_index = len(output)
+                    output.append(Node([j, len(s)-1], []))  # append node w/ substring from i to the end of the suffix
+                    output[node_index].ch.append(next_node_index)  # append new node as a child to the current node
+                    break_flag = True
+                    break
+                # check children
+                next_node_index = children[child_index]
+                if s[output[next_node_index].sub[0]] == char:  # if child node's substring is the char in our suffix
+                    break
+                child_index = child_index + 1  # increase child_index to check if next child contains char
+            if break_flag:
+                break
+            # find prefix of remaining suffix in common with child
+            start, end = output[next_node_index].sub[0],output[next_node_index].sub[1]
+            next_node_str = s[start:end+1]
+            next_str_len = 0
+            while next_str_len < len(next_node_str):
+                # if suffix has
+                if suffix[i + next_str_len] != next_node_str[next_str_len]: # find where there is discrepency
+                    # split next_node_index
+                    temp_node = next_node_index
+                    # new node for the part in common
+                    next_node_index = len(output)
+                    output.append(Node([start,start+next_str_len-1], [temp_node]))
+                    output[temp_node].sub = [start + next_str_len, end]  # old node loses the part in common
+                    output[node_index].ch[child_index] = next_node_index  # update the children
+                    break  # continue down the tree
+                next_str_len = next_str_len + 1
+            i = i + next_str_len  # advance past part in common
+            j = j + next_str_len
+            node_index = next_node_index  # continue down the tree
+    return output
+
+def compare_subs(submission1, submission2):
+    # DFS to label each inner node as having leaves from string1, string2 or both.
+    suffix_tree = construct_suffix_tree(submission1, submission2)
+    hash_index = len(submission1)
+    DFS_tag(suffix_tree, 0, hash_index)
+    lcs_len = DFS_find(suffix_tree, 0, None, hash_index)
+    return lcs_lenx
+
+def DFS_find(suffix_tree, node_index, prev_index, hash_index):
+    node = suffix_tree[node_index]
+    output_length = 0
+
+    if not node.visited2:
+        node.visited2 == True
+        # if node is part of both strings
+        if node.label == 3:
+            tot_len = 0
+            for neighbour in node.ch:
+                child_len = DFS_find(suffix_tree, neighbour, node_index, 3)
+                curr_len = 0
+                if node.sub != "":
+                    curr_len = node.sub[1] - node.sub[0] + 1
+                if child_len + curr_len > tot_len:
+                    tot_len = child_len + curr_len
+            return tot_len
+        # check if leaf node
+        elif node.leaf == True and prev_index != 0:
+            temp_len = node.sub[1] - node.sub[0] + 1
+            if node.sub[0] >= hash_index:
+                temp_len -= 5
+            return temp_len
+        else:
+            return 0
+
+
+
+
+def DFS_tag(suffix_tree, node_index, hash_index):
+    node = suffix_tree[node_index]
+    if not node.visited1:
+        # print(node_index)
+        node.visited1 == True
+        # if leaf node
+        if len(node.ch) == 0:
+            node.leaf = True
+            # if part of string 1
+            if node.sub[1] - node.sub[0] + 1 >= hash_index + 1:
+                node.label = 1
+            # if part of string 2
+            elif node.sub[1] - node.sub[0] + 1 < hash_index + 1:
+                node.label = 2
+            # if node index is between hash_index to , it is part of string 1
+        # if internal node
+        else:
+            for neighbour in suffix_tree[node_index].ch:
+                DFS_tag(suffix_tree, neighbour, hash_index)
+            # once all children are checked in inner node, change internal node to part of s1, s2 or both
+            for neighbour in suffix_tree[node_index].ch:
+                if suffix_tree[neighbour].label == 1:
+                    if node.label == 2:
+                        node.label = 3
+                    else:
+                        node.label = 1
+                elif suffix_tree[neighbour].label == 2:
+                    if node.label == 1:
+                        node.label = 3
+                    else:
+                        node.label = 2
+
+
+
+
+
+
+# a = construct_suffix_tree('xabxa#babxba$')
+# a = construct_suffix_tree('banana$')
+# a = construct_suffix_tree('ban$')
+
+
+# DFS_tag(a, 0, 3)
+# for node in range(len(a)):
+#     print(node)
+#     # print(a[node].sub)
+#     # print(a[node].ch)
+#     print(a[node].label)
+#     print()
+print(compare_subs('ban', 'fan'))
